@@ -1,0 +1,4 @@
+Things to do for the web/mobile apps later
+
+Update sepflag to next available number on website from data sent by mobile app (to account for sepflagid data loss on phone/multiple users)
+Update 'fudge factor' for location coordinates in SetRoute method to allow for a radius to be set around a coordinate in meters. 

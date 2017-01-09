@@ -30,20 +30,24 @@ namespace App2
     public class Splits
     {
         [PrimaryKey, AutoIncrement]
+        
         public int SplitId { get; set; }
+        public int RouteNum { get; set; }
         public double SplitLat { get; set; }
+        public double SplitLng { get; set; }
         public int SplitNum { get; set; }
         public DateTime SplitTimestamp { get; set; }
+        public int SeparatorFlag { get; set; }
     }
 
     public class SplitRoutes
     {
         [PrimaryKey, AutoIncrement]
         public int Id { get; set; }
-       // public int RouteId { get; set; }
+        public int RNum { get; set; }
         public int LocNumber { get; set; }
-        public double LatUpper { get; set; }
-        public double LatLower { get; set; }
+        public double SLat { get; set; }
+        public double SLng { get; set; }
        // public double LngUpper { get; set; }
        // public double LngLower { get; set; }
 
@@ -51,7 +55,7 @@ namespace App2
 
     public class Database {
 
-       // public static Semaphore Token { get; set; }
+       
 
         string folder, locationsdb;
         string SplitRouteDb;
@@ -96,10 +100,12 @@ namespace App2
             {
                 TimeSpan time = returndata.Current.SplitTimestamp - new DateTime(1970, 1, 1);
                 jobj = new JSONObject();
+                jobj.Put("rnum", returndata.Current.RouteNum);
                 jobj.Put("slat", returndata.Current.SplitLat);
-                //jobj.Put("lng", returndata.Current.Lng);
+                jobj.Put("slng", returndata.Current.SplitLng);
                 jobj.Put("stimestamp", (int)time.TotalSeconds);
                 jobj.Put("snum", returndata.Current.SplitNum);
+                jobj.Put("sepflag", returndata.Current.SeparatorFlag );
                 sparr.Put(jobj);
             }
             return sparr;
@@ -107,7 +113,6 @@ namespace App2
 
         public Database()
         {
-            //Token = new Semaphore(1, 1);
 
             folder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
             locationsdb = "locations.db";
@@ -142,19 +147,41 @@ namespace App2
         //}
 
 
+        //public void GetRouteOne()
+        //{
+        //    SplitRouteDbConnection.DeferredQuery<SplitRoutes>().GetEnumerator();
+        //}
+
+
         public void SetRoute()
         {
             if (TableExists<SplitRoutes>(SplitRouteDbConnection) == true)
                 SplitRouteDbConnection.DropTable<SplitRoutes>();
-            SplitRouteDbConnection.CreateTable<SplitRoutes>();
+                SplitRouteDbConnection.CreateTable<SplitRoutes>();
 
-            SplitRoutes splitRoute;
+            insertRouteCoordinate(2, 1, -27.481600, 153.007801);
+            insertRouteCoordinate(2, 2, -27.482000, 153.007730);
 
-            splitRoute = new SplitRoutes { LocNumber = 1, LatLower = -27.481700, LatUpper = -27.481500 };
+            //insertRouteCoordinate(1, 1, -27.483520, 153.011580);
+            //insertRouteCoordinate(1, 2, -27.489640, 153.010350);
+            //insertRouteCoordinate(1, 3, -27.489780, 153.003300);
+            //insertRouteCoordinate(1, 4, -27.487320, 152.997090);
+            //insertRouteCoordinate(1, 5, -27.481300, 153.001000);
+            //insertRouteCoordinate(1, 6, -27.476880, 153.004810);
+            //insertRouteCoordinate(1, 7, -27.471100, 153.012500);
+            //insertRouteCoordinate(1, 8, -27.472920, 153.019940);
+            //insertRouteCoordinate(1, 9, -27.479980, 153.024700);
+            //insertRouteCoordinate(1, 10, -27.482220, 153.020700);
+            //insertRouteCoordinate(1, 11, -27.480980, 153.012110);
+
+        }
+
+        //sets specified routes with route numbers, split numbers and coordinates to phone database
+
+        private void insertRouteCoordinate(int route, int loc, double lat, double lng)
+        {
+            SplitRoutes splitRoute = new SplitRoutes {RNum = route, LocNumber = loc, SLat = lat, SLng = lng };
             SplitRouteDbConnection.Insert(splitRoute);
-            splitRoute = new SplitRoutes { LocNumber = 2, LatLower = -27.482100, LatUpper = -27.481900 };
-            SplitRouteDbConnection.Insert(splitRoute);
-            
         }
 
         public bool MoveNextSplit()
@@ -162,25 +189,27 @@ namespace App2
             return CurrentSplit.MoveNext();
         }
 
-        public IEnumerator<SplitRoutes> GetSpecifiedRoute()
+        public IEnumerator<SplitRoutes> GetSpecifiedRoute(int routeNumber)
         {
             if (CurrentSplit == null)
             {
-                CurrentSplit = SplitRouteDbConnection.DeferredQuery<SplitRoutes>("select * from SplitRoutes").GetEnumerator();
+                CurrentSplit = SplitRouteDbConnection.DeferredQuery<SplitRoutes>("select * from SplitRoutes where RNum = " + routeNumber).GetEnumerator();
                 CurrentSplit.MoveNext();
             }
 
             return CurrentSplit;
         }
 
-        public IEnumerator<SplitRoutes> GetRoute()
+        public IEnumerator<SplitRoutes> GetRoute(int routeNumber)
         {
-            return SplitRouteDbConnection.DeferredQuery<SplitRoutes>("select * from splitroutes").GetEnumerator();
+            return SplitRouteDbConnection.DeferredQuery<SplitRoutes>("select * from splitroutes where RNum = " + routeNumber).GetEnumerator();
+            //TODO Parameterised Query to prevent SQL injection
         }
 
-        public void SetSplits(double latitude, int LocNum)
+        //sets split data while app is in use
+        public void SetSplits(int routeNumber, double latitude, double longitude, int LocNum)
         {
-            var split = new Splits { SplitLat = latitude, SplitNum = LocNum, SplitTimestamp = DateTime.UtcNow };
+            var split = new Splits { RouteNum = routeNumber, SplitLat = latitude, SplitLng = longitude, SplitNum = LocNum, SplitTimestamp = DateTime.UtcNow, SeparatorFlag = sepFlag };
             LocationsDatabase.Insert(split);
         }
 
@@ -205,12 +234,7 @@ namespace App2
 
         public void clearData()
         {
-            //Token.WaitOne();
-            //using (SQLiteConnection db = new SQLiteConnection(System.IO.Path.Combine(folder, locationsdb)))
-            //{
-
-            //if (TableExists<Locations>(db) == true)
-            //{ 
+            
             LocationsDatabase.DropTable<Locations>();
             //}
 
@@ -224,8 +248,7 @@ namespace App2
             LocationsDatabase.Insert(new SepStorage { SeparatorFlag = sepFlag });
 
 
-            //{
-            //Token.Release();
+            
         }
 
         public static bool TableExists<T>(SQLiteConnection connection)

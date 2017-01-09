@@ -72,4 +72,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/trigger" />
+    <CheckBox
+        android:text="West End River Route"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/routeOne" />
 </LinearLayout>

@@ -37,6 +37,9 @@ namespace App2
         private Timer timer;
         Timer textTimer;
         private int LocNum = 0;
+        public int routeNumber = 2;
+        CheckBox routeOne;
+        Boolean Started = false;
 
         public static Semaphore Token { get; set; }
 
@@ -54,7 +57,8 @@ namespace App2
             errorText = FindViewById<TextView>(Resource.Id.errorText);
             clearPhoneData = FindViewById<Button>(Resource.Id.clearPhoneData);
             trigger = FindViewById<TextView>(Resource.Id.trigger);
-            Token = new Semaphore(1, 1);
+            routeOne = FindViewById<CheckBox>(Resource.Id.routeOne);
+            //Token = new Semaphore(1, 1);
 
            
            
@@ -81,6 +85,15 @@ namespace App2
                 clearDatabase();
             };
 
+            //routeOne.Click += (o, e) =>
+            //{
+            //    if (routeOne.Checked)
+            //    {
+            //        routeNumber = 0;
+            //    }
+
+            //};
+
 
             InitializeLocationManager();
         }
@@ -93,8 +106,9 @@ namespace App2
         }
 
         private void InsertSplits()
+
         {
-            database.SetSplits(currentLocation.Latitude, LocNum);
+            database.SetSplits(routeNumber, currentLocation.Latitude, currentLocation.Longitude, LocNum);
         }
 
         protected override void OnResume()
@@ -144,21 +158,32 @@ namespace App2
                 txtalt.Text = currentLocation.Altitude.ToString();
                 txtCount.Text = database.getCount().ToString();
 
-                Token.WaitOne();
+                
                 Log.Info(TAG, "Location Trigger Before");
 
-                //LocationTrigger();
-                LocTrigger();
-
-                Token.Release(1);
+                
+                //if (Started == true)
+                //{
+                    LocTrigger();
+                    //LocationTrigger();
+                //}
             }
+        }
+
+        public void runSplitsCode()
+        {
+            
         }
 
         public void LocTrigger()
         {
-            IEnumerator<SplitRoutes> splitRoute = database.GetSpecifiedRoute();
+            double coordinateBuffer = 0.000100;
+            IEnumerator<SplitRoutes> splitRoute = database.GetSpecifiedRoute(routeNumber);
 
-            if ((splitRoute.Current != null) && (currentLocation.Latitude <= splitRoute.Current.LatUpper) && (currentLocation.Latitude >= splitRoute.Current.LatLower))
+            if ((splitRoute.Current != null) &&
+                (currentLocation.Latitude <= (splitRoute.Current.SLat + coordinateBuffer)) && (currentLocation.Latitude >= (splitRoute.Current.SLat - coordinateBuffer)) &&
+                (currentLocation.Longitude <= (splitRoute.Current.SLng + coordinateBuffer)) && (currentLocation.Longitude >= (splitRoute.Current.SLng - coordinateBuffer))
+                )
             {
                 if (LocNum != splitRoute.Current.LocNumber)
                 {
@@ -169,6 +194,7 @@ namespace App2
                     database.MoveNextSplit();
                 }
             }
+            
 
         }
 
@@ -254,6 +280,7 @@ namespace App2
                 database.incrementFlag();
                 timer = new Timer(x => InsertLocation(), null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
                 startButton.Text = "Stop";
+                //Started = true;
             }
 
             else { 
@@ -266,8 +293,8 @@ namespace App2
         public void exportDataButton()
         {
             errorText.Text = "";
-            var client = new WebsiteRestClient().GetWebsiteData();
-            //var client = new WebsiteRestClient().GetTestData();
+            //var client = new WebsiteRestClient().GetWebsiteData();
+            var client = new WebsiteRestClient().GetTestData();
 
             var request = new RestSharp.RestRequest();
 

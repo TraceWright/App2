@@ -69,6 +69,9 @@ namespace App2
 			// aapt resource value: 0x7f050009
 			public const int exportData = 2131034121;
 			
+			// aapt resource value: 0x7f05000d
+			public const int routeOne = 2131034125;
+			
 			// aapt resource value: 0x7f050008
 			public const int startButton = 2131034120;
 			
